@@ -2,9 +2,13 @@
   "name": "stix",
   "version": "0.0.1",
   "description": "Coming soon.",
-  "main": "index.js",
+  "main": "./dist/src/index.js",
+  "typings": "./dist/src/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha",
+    "dtest": "npm run build && npm run test",
+    "build": "npm run clean && tsc && gulp build",
+    "clean": "rm -rf ./dist"
   },
   "repository": {
     "type": "git",
@@ -15,5 +19,25 @@
   "bugs": {
     "url": "https://github.com/SpoonX/stix/issues"
   },
-  "homepage": "https://github.com/SpoonX/stix#readme"
+  "homepage": "https://github.com/SpoonX/stix#readme",
+  "devDependencies": {
+    "@types/chai": "^4.0.4",
+    "@types/express": "^4.0.39",
+    "@types/knex": "0.0.65",
+    "@types/mocha": "^2.2.43",
+    "@types/node": "^8.0.28",
+    "@types/winston": "^2.3.6",
+    "chai": "^4.1.2",
+    "gulp": "^3.9.1",
+    "mocha": "^3.5.3",
+    "sqlite3": "^3.1.13",
+    "typescript": "^2.5.2"
+  },
+  "dependencies": {
+    "express": "^4.16.2",
+    "homefront": "^2.0.0",
+    "include-all": "^4.0.3",
+    "wetland": "^2.4.0",
+    "winston": "^2.3.1"
+  }
 }
