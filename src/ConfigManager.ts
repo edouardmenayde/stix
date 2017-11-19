@@ -1,10 +1,8 @@
 import * as path from 'path';
-
 import {Homefront} from 'homefront';
-
 import {transports as winstonTransports} from 'winston';
-
 import * as include from 'include-all';
+import * as moment from 'moment';
 
 export class ConfigManager {
 
@@ -29,7 +27,10 @@ export class ConfigManager {
   private config: Homefront = new Homefront({
     modules: [],
     logging: {
-      transports: [new winstonTransports.Console()]
+      transports: [new winstonTransports.Console({
+        colorize : true,
+        timestamp: () => moment().format('HH:mm:ss')
+      })],
     },
     http   : {
       port: 5718
@@ -83,5 +84,15 @@ export class ConfigManager {
    */
   public fetch(...toFetch): any {
     return this.config.fetch(...toFetch);
+  }
+
+  public fetchOrError(...toFetch): any {
+    const result = this.fetch(...toFetch);
+
+    if (!result) {
+      throw new Error(`Could not find config for \`${toFetch[0]}\`.`);
+    }
+
+    return result;
   }
 }

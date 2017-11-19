@@ -34,9 +34,11 @@
     "typescript": "^2.5.2"
   },
   "dependencies": {
+    "debug": "^3.1.0",
     "express": "^4.16.2",
     "homefront": "^2.0.0",
     "include-all": "^4.0.3",
+    "moment": "^2.19.2",
     "wetland": "^2.4.0",
     "winston": "^2.3.1"
   }

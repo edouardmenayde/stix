@@ -1,3 +1,4 @@
-export class WebsocketRequestResolver implements RequestResolverInterface {
+import {RequestResolver} from '../RequestResolver';
 
+export class WebsocketRequestResolver extends RequestResolver {
 }

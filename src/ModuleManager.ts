@@ -9,20 +9,20 @@ import {Homefront} from 'homefront';
 import {ConfigManager} from './ConfigManager';
 import {Entity} from './Entity';
 import {Controller} from './Controller';
-import {Service} from './Service';
+import {ServiceInterface} from './ServiceInterface';
 
-class ModuleConfig {
+export class ModuleConfig {
   public config: Homefront;
   public entities: Map<string, Entity>;
   public controllers: Map<string, Controller>;
-  public services: Map<string, Service>;
+  public services: Map<string, ServiceInterface>;
 }
 
-class Module {
+export class Module {
   private config: Homefront;
   private entities: Map<string, Entity>;
   private controllers: Map<string, Controller>;
-  private services: Map<string, Service>;
+  private services: Map<string, ServiceInterface>;
 
   constructor(config: ModuleConfig) {
     this.config      = config.config;
@@ -85,7 +85,7 @@ class ModuleFactory {
     // Whoa it loaded
 
     const entities = include({
-      dirname : path.resolve(modulePath, 'entities'),
+      dirname : path.resolve(modulePath, 'entity'),
       filter  : /(.+)\.js/,
       optional: true,
     });
@@ -97,7 +97,7 @@ class ModuleFactory {
     });
 
     const services = include({
-      dirname : path.resolve(modulePath, 'services'),
+      dirname : path.resolve(modulePath, 'service'),
       filter  : /(.+)\.js/,
       optional: true,
     });
@@ -109,7 +109,9 @@ class ModuleFactory {
       services   : new Map(Object.entries(services))
     });
 
-    this.logger.verbose('Successfully loaded module %s');
+    this.logger.info('Successfully loaded module `%s`', moduleName);
+
+    return module;
   }
 }
 
@@ -129,9 +131,13 @@ export class ModuleManager {
   }
 
   public loadModules() {
-    this.logger.info('Loading Modules...');
-
     const modules = this.config.fetch('modules');
+
+    if (!modules.length) {
+      return this.logger.info('There are no modules to load');
+    }
+
+    this.logger.info('Loading Modules...');
 
     modules.forEach(moduleName => {
       if (this.modules.has(moduleName)) {
@@ -146,13 +152,7 @@ export class ModuleManager {
     });
   }
 
-  public registerModules() {
-    const wetland = this.stix.getWetland();
-
-    this.modules.forEach(module => {
-      module.getEntities().forEach(entity => {
-        wetland.registerEntity(entity as EntityCtor<EntityInterface>);
-      });
-    })
+  public getModules(): Map<string, Module> {
+    return this.modules;
   }
 }

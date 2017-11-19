@@ -5,10 +5,10 @@ import {Stix} from '../../src';
 describe('Stix', () => {
   describe('Stix::Instantiate', () => {
     it('Should instantiate without argument', () => {
-      const stix = new Stix();
+      new Stix();
     });
     it('Should instantiate with an argument', () => {
-      const stix = new Stix({
+      new Stix({
         sth: 'John'
       });
     });

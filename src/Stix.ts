@@ -1,53 +1,25 @@
 import {ModuleManager} from './ModuleManager';
 import {ConfigManager} from './ConfigManager';
 import {Logger} from './Logger';
-import * as express from 'express';
-import {Express} from 'express';
-import {Wetland} from 'wetland';
+import {EventEmitter} from 'events';
+import {EntityCtor, EntityInterface, Wetland} from 'wetland';
 
 import {LoggerInstance, transports as winstonTransports} from 'winston';
-import {Server as HttpServer} from 'http';
-import {Server as HttpsServer} from 'https';
-import * as http from 'http';
-
-type Server = HttpServer | HttpServer;
+import {HttpRequestResolver} from './RequestResolvers/HttpRequestResolver';
+import {HookInterface} from './Hook';
+import {WetlandHook} from './WetlandHook';
+import {RestRequestResolver} from './RequestResolvers/RestRequestResolver';
 
 export class Stix {
-
   private moduleManager: ModuleManager;
   private logger: Logger;
   private configManager: ConfigManager;
-  private wetland: Wetland;
 
-  private app: Express;
-  private server: Server;
+  private eventEmitter: EventEmitter;
 
-  /**
-   * Get the config manager.
-   *
-   * @return {ConfigManager}
-   */
-  public getConfigManager() {
-    return this.configManager;
-  }
+  // private wetland: Wetland; // @TODO: move it into its own layer ??
 
-  /**
-   * Get wetland.
-   *
-   * @return {Wetland}
-   */
-  public getWetland() {
-    return this.wetland;
-  }
-
-  /**
-   *   Get logger.
-   *
-   * @return {winston.LoggerInstance}
-   */
-  public getLogger(): LoggerInstance {
-    return this.logger.getWinston();
-  }
+  private hooks: Map<string, HookInterface>;
 
   /**
    * Creates a Stix instance.
@@ -59,62 +31,112 @@ export class Stix {
 
     this.logger        = new Logger(this);
     this.moduleManager = new ModuleManager(this);
-    this.wetland       = new Wetland(this.configManager.fetch('wetland'));
+    this.eventEmitter  = new EventEmitter();
+    this.hooks         = new Map();
   }
+
+  public emit(eventName: string, ...args) {
+    this.getLogger().verbose('Event `%s` emitted', eventName);
+    return this.eventEmitter.emit(eventName, ...args);
+  }
+
+  /**
+   * Get hook.
+   *
+   * @param {string} hookName
+   */
+  public getHook(hookName: string): HookInterface | never {
+    const hook = this.hooks.get(hookName);
+
+    if (!hook) {
+      throw new Error(`Could not find ${hookName}.`);
+    }
+
+    return hook;
+  }
+
+  /**
+   * Get the config manager.
+   *
+   * @return {ConfigManager}
+   */
+  public getConfigManager() {
+    return this.configManager;
+  }
+
+  /**
+   *   Get logger.
+   *
+   * @return {winston.LoggerInstance}
+   */
+  public getLogger(): LoggerInstance {
+    return this.logger.getWinston();
+  }
+
+
+  /**
+   * Get module manager.
+   *
+   * @return {ModuleManager}
+   */
+  public getModuleManager(): ModuleManager {
+    return this.moduleManager;
+  }
+
+  public getEventEmitter(): EventEmitter {
+    return this.eventEmitter;
+  }
+
 
   /**
    * Load the app.
    */
   public load(): Promise<Stix> {
     this.moduleManager.loadModules();
-    this.moduleManager.registerModules();
 
-    this.app = express();
+    this.hooks.set('http-request-resolver', new HttpRequestResolver(this));
+    this.hooks.set('rest-request-resolver', new RestRequestResolver(this));
+    this.hooks.set('wetland-hook', new WetlandHook(this));
 
-    return new Promise(resolve => resolve(this));
+    const promises = [];
+
+    this.hooks.forEach(hook => promises.push(hook.onLoad()));
+
+    return Promise.all(promises)
+      .then(() => {
+        return this;
+      });
   }
 
   /**
    * Lift the app.
    *
-   * @return {Promise<void>}
+   * @return {Promise<Stix>}
    */
-  public lift(): Promise<void> {
-    this.load();
+  public async lift(): Promise<Stix> {
+    await this.load();
 
-    // The ideas is to mount a request resolver on different mountpoint
+    const promises = [];
 
-    // graphql rr on /graphql
-    // rest rr on / or each /resource
+    this.hooks.forEach(hook => promises.push(hook.onLift()));
 
-    this.server = http.createServer(this.app);
-
-    this.app.get('/', (req, res) => {
-      res.send('Hello world');
-    });
-
-    this.server.on('connection', connection => {
-      this.getLogger().silly('Opening tcp connection from %s on %s', connection.remoteAddress, connection.remotePort);
-    });
-
-    const port = this.configManager.fetch('http.port');
-    return new Promise(resolve => {
-      this.server.listen(port, () => {
-        this.getLogger().info('Stix lifting on %s', port);
-        resolve();
+    return Promise.all(promises)
+      .then(() => {
+        return this;
       });
-    });
   }
 
-  public lower(): Promise<void | Error> {
-    return new Promise((resolve, reject) => {
-      this.server.close(error => {
-        if (error) {
-          return reject(error);
-        }
+  /**
+   * Lower the app.
+   *
+   * @return {Promise<(void | Error)[]>}
+   */
+  public lower(): Promise<(void | Error)[]> {
 
-        return resolve();
-      });
-    });
+    const promises = [];
+
+    this.hooks.forEach(hook => promises.push(hook['onLift']()));
+
+    return Promise.all(promises);
   }
 }
