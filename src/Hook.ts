@@ -1,14 +1,16 @@
+import * as Bluebird from 'bluebird';
+
 export interface HookInterface {
   onLoad: {
-    (): (Promise<void | Error> | void)
+    (): (Bluebird<void | Error> | void)
   }
 
   onLift: {
-    (): (Promise<void | Error> | void)
+    (): (Bluebird<void | Error> | void)
   }
 
   onLower: {
-    (): (Promise<void | Error> | void)
+    (): (Bluebird<void | Error> | void)
   }
 }
 

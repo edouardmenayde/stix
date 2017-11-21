@@ -1,8 +1,9 @@
 import {EntityCtor, EntityInterface, Wetland} from 'wetland';
-import {ModuleManager} from './ModuleManager';
-import {Hook} from './Hook';
-import {ConfigManager} from './ConfigManager';
-import {Stix} from './Stix';
+import {ModuleManager} from '../ModuleManager';
+import {Hook} from '../Hook';
+import {ConfigManager} from '../ConfigManager';
+import {Stix} from '../Stix';
+import * as Bluebird from 'bluebird';
 
 export class WetlandHook extends Hook {
 
@@ -21,8 +22,9 @@ export class WetlandHook extends Hook {
     return this.wetland;
   }
 
-  public onLoad() {
-    this.wetland  = new Wetland(this.configManager.fetch('wetland'));
+  public onLoad(): Bluebird<any> {
+    console.log(this.configManager.fetch('wetland'));
+    this.wetland  = new Wetland(this.configManager.fetchOrError('wetland'));
     const modules = this.moduleManager.getModules();
 
     modules.forEach((module) => {
@@ -30,5 +32,7 @@ export class WetlandHook extends Hook {
         this.wetland.registerEntity(entity as EntityCtor<EntityInterface>);
       });
     });
+
+    return this.wetland.getMigrator().devMigrations(false);
   }
 }

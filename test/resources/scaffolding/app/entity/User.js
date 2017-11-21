@@ -1,5 +1,5 @@
 module.exports = class User {
-  setMapping(mapping) {
+  static setMapping(mapping) {
     mapping.forProperty('id').primary().increments();
   }
 };

@@ -5,9 +5,10 @@ import {EventEmitter} from 'events';
 import {Express} from 'express';
 import {ConfigManager} from '../ConfigManager';
 import {ModuleManager} from '../ModuleManager';
-import {EntityCtor, EntityInterface} from 'wetland';
 import {LoggerInstance} from 'winston';
 import Debug from 'debug';
+
+import {find} from '../Blueprints';
 
 const debug = Debug('stix:rest-request-resolver');
 
@@ -22,7 +23,7 @@ export class RestRequestResolver extends RequestResolver {
   private app: Express;
 
   private loadConfig() {
-    this.mountpoint = this.configManager.fetchOrError ('rest.mountpoint');
+    this.mountpoint = this.configManager.fetchOrError('rest.mountpoint');
   }
 
   private mountAllModulesEntity() {
@@ -35,20 +36,22 @@ export class RestRequestResolver extends RequestResolver {
       module.getEntities().forEach((entity, entityName) => {
         const mountPath = entityName.toLowerCase() === moduleName.toLowerCase() ? '/' : `/${entityName}`;
         this.logger.verbose('Mounting %s on subapp %s on %s', entityName, moduleName, mountPath);
-        subApp.get(mountPath, (req, res) => {
-          const manager    = wetlandHook['getWetland']().getManager();
-          const repository = manager.getRepository(manager.getEntity(entityName) as EntityCtor<EntityInterface>);
-
-          repository.find()
-            .then(results => {
-              res.set(200);
-              res.end(results);
-            })
-            .catch(error => {
-              res.set(500);
-              res.end(error);
-            })
-        });
+        subApp.get(mountPath, (req, res) => find(this.stix, entityName, req, res));
+        // subApp.get(mountPath, (req, res) => {
+        //   const manager    = wetlandHook['getWetland']().getManager();
+        //   const repository = manager.getRepository(manager.getEntity(entityName) as EntityCtor<EntityInterface>);
+        //
+        //   repository.find()
+        //     .then(results => {
+        //       console.log(results)
+        //       res.set(200);
+        //       res.json(results);
+        //     })
+        //     .catch(error => {
+        //       res.set(500);
+        //       res.json(error);
+        //     })
+        // });
       });
       this.logger.verbose('Mounting %s subapp on %s', moduleName, `/${moduleName}`);
       this.app.use(`/${moduleName}`, subApp);

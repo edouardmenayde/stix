@@ -9,10 +9,6 @@ export class ConfigManager {
   /**
    * Where the application lives.
    *
-   * For the moment there should be no way to override it.
-   *
-   * @TODO: consider ways to make this overridable via loading arguments
-   *
    * @type {string}
    */
   public applicationPath = process.cwd();

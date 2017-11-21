@@ -1,5 +1,5 @@
 module.exports = class Cart {
-  setMapping(mapping) {
-    mapping.formatProperty('id').primary().increments();
+  static setMapping(mapping) {
+    mapping.forProperty('id').primary().increments();
   }
 };

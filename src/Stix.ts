@@ -1,14 +1,13 @@
+import * as Bluebird from 'bluebird';
 import {ModuleManager} from './ModuleManager';
 import {ConfigManager} from './ConfigManager';
 import {Logger} from './Logger';
 import {EventEmitter} from 'events';
-import {EntityCtor, EntityInterface, Wetland} from 'wetland';
-
-import {LoggerInstance, transports as winstonTransports} from 'winston';
+import {LoggerInstance} from 'winston';
 import {HttpRequestResolver} from './RequestResolvers/HttpRequestResolver';
 import {HookInterface} from './Hook';
 import {WetlandHook} from './WetlandHook';
-import {RestRequestResolver} from './RequestResolvers/RestRequestResolver';
+import {RestRequestResolver} from './RestRequestResolver';
 
 export class Stix {
   private moduleManager: ModuleManager;
@@ -16,9 +15,6 @@ export class Stix {
   private configManager: ConfigManager;
 
   private eventEmitter: EventEmitter;
-
-  // private wetland: Wetland; // @TODO: move it into its own layer ??
-
   private hooks: Map<string, HookInterface>;
 
   /**
@@ -91,7 +87,7 @@ export class Stix {
   /**
    * Load the app.
    */
-  public load(): Promise<Stix> {
+  public load(): Bluebird<Stix> {
     this.moduleManager.loadModules();
 
     this.hooks.set('http-request-resolver', new HttpRequestResolver(this));
@@ -102,7 +98,7 @@ export class Stix {
 
     this.hooks.forEach(hook => promises.push(hook.onLoad()));
 
-    return Promise.all(promises)
+    return Bluebird.all(promises)
       .then(() => {
         return this;
       });
@@ -111,16 +107,17 @@ export class Stix {
   /**
    * Lift the app.
    *
-   * @return {Promise<Stix>}
+   * @return {Bluebird<Stix>}
    */
-  public async lift(): Promise<Stix> {
-    await this.load();
+  public lift(): Bluebird<Stix> {
+    return this.load()
+      .then(() => {
+        const promises = [];
 
-    const promises = [];
+        this.hooks.forEach(hook => promises.push(hook.onLift()));
 
-    this.hooks.forEach(hook => promises.push(hook.onLift()));
-
-    return Promise.all(promises)
+        return Bluebird.all(promises);
+      })
       .then(() => {
         return this;
       });
@@ -129,14 +126,14 @@ export class Stix {
   /**
    * Lower the app.
    *
-   * @return {Promise<(void | Error)[]>}
+   * @return {Bluebird<(void | Error)[]>}
    */
-  public lower(): Promise<(void | Error)[]> {
+  public lower(): Bluebird<(void | Error)[]> {
 
     const promises = [];
 
     this.hooks.forEach(hook => promises.push(hook['onLift']()));
 
-    return Promise.all(promises);
+    return Bluebird.all(promises);
   }
 }

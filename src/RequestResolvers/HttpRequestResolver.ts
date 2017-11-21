@@ -1,3 +1,4 @@
+import * as Bluebird from 'bluebird';
 import {Express} from 'express';
 import * as express from 'express';
 import {Server as HttpServer} from 'http';
@@ -72,7 +73,7 @@ export class HttpRequestResolver extends RequestResolver {
     this.stix.emit('hook:http-request-resolver:loaded', this);
   }
 
-  public onLift(): Promise<void> {
+  public onLift(): Bluebird<void> {
     this.server = http.createServer(this.app);
 
     this.server.on('connection', connection => {
@@ -81,7 +82,7 @@ export class HttpRequestResolver extends RequestResolver {
 
     const port = this.configManager.fetch('http.port');
 
-    return new Promise(resolve => {
+    return new Bluebird(resolve => {
       this.server.listen(port, () => {
         this.logger.info('Stix lifting on %s', port);
         resolve();
@@ -89,12 +90,12 @@ export class HttpRequestResolver extends RequestResolver {
     });
   }
 
-  public onLower(): Promise<void | Error> {
+  public onLower(): Bluebird<void | Error> {
     if (!this.server) {
-      return Promise.resolve();
+      return Bluebird.resolve();
     }
 
-    return new Promise((resolve, reject) => {
+    return new Bluebird((resolve, reject) => {
       this.server.close(error => {
         if (error) {
           return reject(error);

@@ -1,0 +1,1 @@
+{"Cart":{"entity":{"name":"Cart","tableName":"cart","store":null},"primary":"id","fields":{"id":{"name":"id","primary":true,"generatedValue":"autoIncrement"}},"columns":{"id":"id"}}}
